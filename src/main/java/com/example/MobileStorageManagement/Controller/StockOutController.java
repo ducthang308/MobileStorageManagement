@@ -51,6 +51,7 @@ public class StockOutController {
         return ResponseEntity.ok(stockOutService.toResponse(updated));
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id){
         stockOutService.delete(id);
