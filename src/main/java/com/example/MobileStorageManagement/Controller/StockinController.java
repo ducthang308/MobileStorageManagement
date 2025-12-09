@@ -21,7 +21,7 @@ public class StockinController {
     private StockInService stockInService;
 
     // GET ALL
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole ('ADMIN')")
     @GetMapping
     public ResponseEntity<List<StockInResponse>> getAll() {
         List<StockInResponse> list = stockInService.getAll().stream()
@@ -31,7 +31,7 @@ public class StockinController {
     }
 
     // GET BY ID
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole ('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<StockInResponse> getById(@PathVariable Integer id) {
         StockIn stock = stockInService.getById(id)
@@ -41,7 +41,7 @@ public class StockinController {
     }
 
     // CREATE
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole ('ADMIN')")
     @PostMapping
     public ResponseEntity<StockInResponse> create(@RequestBody StockInRequest request) throws IOException {
         StockIn created = stockInService.create(request);
@@ -49,7 +49,7 @@ public class StockinController {
     }
 
     // UPDATE
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole ('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<StockInResponse> update(
             @PathVariable Integer id,
@@ -61,7 +61,7 @@ public class StockinController {
     }
 
     // DELETE
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole ('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Integer id) {
         stockInService.delete(id);
