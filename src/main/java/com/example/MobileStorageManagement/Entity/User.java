@@ -1,17 +1,16 @@
 package com.example.MobileStorageManagement.Entity;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "UserID ")
+    @Column(name = "UserID")
     private Integer userId;
 
     @Column(name = "SDT", length = 15)
@@ -35,8 +34,19 @@ public class User {
     private String googleId;
 
     @ManyToOne
-    @JoinColumn(name = "RoleID ")
+    @JoinColumn(name = "RoleID")
     private Role role;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private Cart cart;
+
+    public Cart getCart() {
+        return cart;
+    }
+
+    public void setCart(Cart cart) {
+        this.cart = cart;
+    }
 
     public Integer getUserId() {
         return userId;

@@ -1,0 +1,67 @@
+package com.example.MobileStorageManagement.Service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.example.MobileStorageManagement.DTO.CartDTO;
+import com.example.MobileStorageManagement.Entity.Cart;
+import com.example.MobileStorageManagement.Entity.User;
+import com.example.MobileStorageManagement.Repository.CartRepository;
+import com.example.MobileStorageManagement.Repository.UserRepository;
+
+@Service
+public class CartService {
+    private final CartRepository cartRepository;
+    private final UserRepository userRepository;
+
+    public CartService(CartRepository cartRepository,
+            UserRepository userRepository) {
+        this.cartRepository = cartRepository;
+        this.userRepository = userRepository;
+    }
+
+    public CartDTO toDTO(Cart cart) {
+        CartDTO dto = new CartDTO();
+        dto.setCartId(cart.getCartID());
+        dto.setUserId(cart.getUser().getUserId());
+        dto.setStatus(cart.getStatus());
+        return dto;
+    }
+
+    public CartDTO createCart(CartDTO DTO) {
+        User user = userRepository.findById(DTO.getUserId())
+                .orElseThrow();
+
+        Cart cart = new Cart();
+        cart.setUser(user);
+        cart.setStatus(DTO.getStatus());
+
+        Cart savedCart = cartRepository.save(cart);
+        return toDTO(savedCart);
+    }
+
+    public CartDTO getCartByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow();
+
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow();
+
+        return toDTO(cart);
+    }
+
+    public List<CartDTO> getAllCarts() {
+        List<Cart> carts = cartRepository.findAll();
+        return carts.stream().map(this::toDTO).toList();
+    }
+
+    public void deleteCartByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow();
+
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow();
+        cartRepository.delete(cart);
+    }
+}

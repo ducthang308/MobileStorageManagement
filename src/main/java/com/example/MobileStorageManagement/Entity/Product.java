@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "Product")
+@Table(name = "products")
 @Getter
 @Setter
 @NoArgsConstructor
