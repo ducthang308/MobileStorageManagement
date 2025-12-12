@@ -8,6 +8,7 @@ import com.example.MobileStorageManagement.Entity.Role;
 import com.example.MobileStorageManagement.Entity.User;
 import com.example.MobileStorageManagement.JWT.JwtUtil;
 import com.example.MobileStorageManagement.Repository.RoleRepository;
+import com.example.MobileStorageManagement.Repository.UserRepository;
 import com.example.MobileStorageManagement.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,9 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         if (userService.existsBySdt(String.valueOf(req.getSdt()))) {
@@ -69,27 +73,49 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+
         String input = (req.getSdt() != null && !req.getSdt().isBlank())
                 ? req.getSdt()
                 : req.getEmail();
 
         try {
-            authManager.authenticate(new UsernamePasswordAuthenticationToken(input, req.getPassWord()));
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(input, req.getPassWord())
+            );
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai thông tin đăng nhập");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Sai thông tin đăng nhập");
         }
 
         Authentication authentication = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(input, req.getPassWord())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        // Lấy role
         List<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
+        // Lấy user info từ DB
+        User user = userRepository.findBySdtOrEmail(input, input)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
 
+        // Generate token
         String jwt = jwtUtil.generateToken(input, roles);
-        return ResponseEntity.ok(new LoginResponse(jwt));
+
+        // Build response
+        LoginResponse res = new LoginResponse();
+        res.setUserId(user.getUserId());
+        res.setSdt(user.getSdt());
+        res.setFullName(user.getFullName());
+        res.setEmail(user.getEmail());
+        res.setAddress(user.getAddress());
+        res.setAvatar(user.getAvatar());
+        res.setRole(user.getRole().getRoleId());
+        res.setToken(jwt);
+
+        return ResponseEntity.ok(res);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('WORKER')")
@@ -107,4 +133,6 @@ public class UserController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+
 }
