@@ -11,4 +11,5 @@ public interface UserRepository extends JpaRepository<User,Integer> {
     Optional<User> findBySdt (String Sdt);
     List<User> findByRole_RoleNameIn(List<String> roleName);
     boolean existsBySdt(String sdt);
+    Optional<User> findBySdtOrEmail(String Sdt, String email);
 }
