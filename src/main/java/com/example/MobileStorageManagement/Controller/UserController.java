@@ -11,8 +11,10 @@ import com.example.MobileStorageManagement.JWT.JwtUtil;
 import com.example.MobileStorageManagement.Repository.RoleRepository;
 import com.example.MobileStorageManagement.Repository.UserRepository;
 import com.example.MobileStorageManagement.Service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +25,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -135,17 +138,27 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(
+            value = "/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<?> updateUser(
             @PathVariable Integer id,
-            @RequestBody UpdateUserDTO req
-    ) {
-        try {
-            User updated = userService.updateUser(id, req);
-            return ResponseEntity.ok(userService.toResponse(updated));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+            @RequestPart("data") String json,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar
+    ) throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        UpdateUserDTO req = mapper.readValue(json, UpdateUserDTO.class);
+
+        User updated = userService.updateUser(id, req, avatar);
+        return ResponseEntity.ok(userService.toResponse(updated));
+    }
+
+
+    @GetMapping
+    public List<User> getAll(){
+        return userService.getAllUser();
     }
 
 }
