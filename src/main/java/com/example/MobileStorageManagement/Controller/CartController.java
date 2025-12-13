@@ -46,6 +46,9 @@ public class CartController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteCartByUser(@PathVariable Integer id) {
-        return ResponseEntity.ok("Cart deleted successfully");
+        cartService.deleteCartByUserId(id);
+        return ResponseEntity.ok("Deleted cart of userId = " + id);
     }
+
+
 }

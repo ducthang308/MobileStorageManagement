@@ -29,13 +29,13 @@ public class CartDetailController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping
-    public List<CartDetail> getAll() {
+    public List<CartDetailResponse> getAll() {
         return cartDetailService.getAll();
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
-    public ResponseEntity<CartDetail> getById(@PathVariable Integer id) {
+    public ResponseEntity<CartDetailResponse> getById(@PathVariable Integer id) {
         return cartDetailService.getById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -43,7 +43,7 @@ public class CartDetailController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/cart/{cartId}")
-    public List<CartDetail> getByCartId(@PathVariable Integer cartId) {
+    public List<CartDetailResponse> getByCartId(@PathVariable Integer cartId) {
         return cartDetailService.getByCartId(cartId);
     }
 
