@@ -1,7 +1,14 @@
 package com.example.MobileStorageManagement.Controller;
 
 import java.util.List;
+import java.util.Optional;
 
+import com.example.MobileStorageManagement.Entity.Cart;
+import com.example.MobileStorageManagement.Entity.User;
+import com.example.MobileStorageManagement.Repository.CartRepository;
+import com.example.MobileStorageManagement.Repository.CategoryRepository;
+import com.example.MobileStorageManagement.Repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,9 +27,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequestMapping("/api/carts")
 public class CartController {
     private final CartService cartService;
+    private final UserRepository userRepository;
+    private final CartRepository cartRepository;
 
-    public CartController(CartService cartService) {
+    public CartController(CartService cartService, UserRepository userRepository, CartRepository cartRepository) {
         this.cartService = cartService;
+        this.userRepository = userRepository;
+        this.cartRepository = cartRepository;
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -33,8 +44,11 @@ public class CartController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
-    public ResponseEntity<CartDTO> getCartByUser(@PathVariable Integer id) {
-        return ResponseEntity.ok(this.cartService.getCartByUserId(id));
+    public Optional<Cart> getCartByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+
+        return cartRepository.findByUser(user);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
