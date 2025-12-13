@@ -5,9 +5,11 @@ import com.example.MobileStorageManagement.DTO.LoginRequest;
 import com.example.MobileStorageManagement.DTO.LoginResponse;
 import com.example.MobileStorageManagement.DTO.RegisterRequest;
 import com.example.MobileStorageManagement.DTO.UpdateUserDTO;
+import com.example.MobileStorageManagement.Entity.Cart;
 import com.example.MobileStorageManagement.Entity.Role;
 import com.example.MobileStorageManagement.Entity.User;
 import com.example.MobileStorageManagement.JWT.JwtUtil;
+import com.example.MobileStorageManagement.Repository.CartRepository;
 import com.example.MobileStorageManagement.Repository.RoleRepository;
 import com.example.MobileStorageManagement.Repository.UserRepository;
 import com.example.MobileStorageManagement.Service.UserService;
@@ -49,8 +51,12 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CartRepository cartRepository;
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+
         if (userService.existsBySdt(String.valueOf(req.getSdt()))) {
             return ResponseEntity.badRequest().body("SĐT đã tồn tại");
         }
@@ -64,13 +70,19 @@ public class UserController {
 
         Role role = roleRepository.findById(1)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy quyền"));
-
         user.setRole(role);
 
-        userService.saveUser(user);
+        User savedUser = userService.saveUser(user);
+
+        Cart cart = new Cart();
+        cart.setUser(savedUser);
+        cart.setStatus("ACTIVE");
+
+        cartRepository.save(cart);
 
         return ResponseEntity.ok("Đăng ký thành công");
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
