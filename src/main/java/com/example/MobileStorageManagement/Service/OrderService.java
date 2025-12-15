@@ -41,8 +41,9 @@ public class OrderService {
     }
 
     // GET ALL ORDER BY USER
-    public List<Order> getOrdersByUser(Integer userID) {
-        return orderRepository.findByUser_UserId(userID);
+    public List<OrderResponse> getOrdersByUser(Integer userId) {
+        List<Order> orders = orderRepository.findByUser_UserId(userId);
+        return OrderService.toResponse(orders);
     }
 
     // GET ALL
@@ -84,5 +85,12 @@ public class OrderService {
         res.setUserID(order.getUser().getUserId());
         return res;
     }
+
+    public static List<OrderResponse> toResponse(List<Order> orders) {
+        return orders.stream()
+                .map(OrderService::toResponse)
+                .toList();
+    }
+
 
 }

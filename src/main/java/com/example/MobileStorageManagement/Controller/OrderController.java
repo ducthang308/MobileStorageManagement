@@ -28,25 +28,25 @@ public class OrderController {
             @RequestBody OrderRequest dto
     ) {
         Order order = orderService.createOrder(dto);
-        return ResponseEntity.ok(orderService.toResponse(order));
+        return ResponseEntity.ok(OrderService.toResponse(order));
     }
 
 
     // GET BY ID
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
         Order order = orderService.getOrderById(id);
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(OrderService.toResponse(order));
     }
 
     // GET ALL ORDERS BY USER
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Order>> getOrdersByUser(@PathVariable Integer userId) {
-        List<Order> orders = orderService.getOrdersByUser(userId);
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<List<OrderResponse>> getOrdersByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(orderService.getOrdersByUser(userId));
     }
+
 
     // GET ALL
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
