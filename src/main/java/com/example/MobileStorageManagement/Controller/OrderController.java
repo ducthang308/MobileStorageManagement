@@ -1,6 +1,7 @@
 package com.example.MobileStorageManagement.Controller;
 
 import com.example.MobileStorageManagement.DTO.OrderRequest;
+import com.example.MobileStorageManagement.DTO.OrderResponse;
 import com.example.MobileStorageManagement.Entity.Order;
 import com.example.MobileStorageManagement.Service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,26 +24,29 @@ public class OrderController {
     // CREATE
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody OrderRequest dto) {
+    public ResponseEntity<OrderResponse> createOrder(
+            @RequestBody OrderRequest dto
+    ) {
         Order order = orderService.createOrder(dto);
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(OrderService.toResponse(order));
     }
+
 
     // GET BY ID
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
         Order order = orderService.getOrderById(id);
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(OrderService.toResponse(order));
     }
 
     // GET ALL ORDERS BY USER
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Order>> getOrdersByUser(@PathVariable Integer userId) {
-        List<Order> orders = orderService.getOrdersByUser(userId);
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<List<OrderResponse>> getOrdersByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(orderService.getOrdersByUser(userId));
     }
+
 
     // GET ALL
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -55,13 +59,14 @@ public class OrderController {
     // UPDATE
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(
+    public ResponseEntity<OrderResponse> updateOrder(
             @PathVariable Long id,
             @RequestBody OrderRequest dto
     ) {
-        Order updatedOrder = orderService.updateOrder(id, dto);
-        return ResponseEntity.ok(updatedOrder);
+        Order order = orderService.updateOrder(id, dto);
+        return ResponseEntity.ok(orderService.toResponse(order));
     }
+
 
     // DELETE
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")

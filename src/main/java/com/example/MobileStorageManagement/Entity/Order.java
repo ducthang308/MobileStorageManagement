@@ -1,6 +1,7 @@
 package com.example.MobileStorageManagement.Entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
