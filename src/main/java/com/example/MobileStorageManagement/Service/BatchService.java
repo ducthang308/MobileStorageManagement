@@ -2,6 +2,7 @@ package com.example.MobileStorageManagement.Service;
 
 import com.example.MobileStorageManagement.DTO.BatchRequest;
 import com.example.MobileStorageManagement.DTO.BatchResponse;
+import com.example.MobileStorageManagement.DTO.ProductDTO;
 import com.example.MobileStorageManagement.Entity.Batch;
 import com.example.MobileStorageManagement.Entity.Product;
 import com.example.MobileStorageManagement.Repository.BatchRepository;
@@ -15,81 +16,127 @@ import java.util.Optional;
 
 @Service
 public class BatchService {
+
     @Autowired
     private BatchRepository batchRepository;
 
     @Autowired
     private ProductRepository productRepository;
 
-    public Optional<Batch> getById(Long id) {
-        return batchRepository.findById(id);
+    /* =========================
+       GET
+       ========================= */
+
+    public List<BatchResponse> getAll() {
+        return batchRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    public List<Batch> getAll() {
-        return batchRepository.findAll();
-    }
-
-    public BatchResponse create(BatchRequest batchRequest) throws IOException {
-        Batch sp = new Batch();
-
-        sp.setQuantity(batchRequest.getQuantity());
-        sp.setPriceIn(batchRequest.getPriceIn());
-        sp.setExpiry(batchRequest.getExpiry());
-        sp.setProductionDate(batchRequest.getProductionDate());
-
-        if(batchRequest.getProductID() != null){
-            Product product = productRepository.findById(batchRequest.getProductID())
-                    .orElseThrow(() -> new RuntimeException("sản phẩm không tồn tại"));
-            sp.setProduct(product);
-        }
-
-
-        return toResponse(batchRepository.save(sp));
-    }
-
-    public BatchResponse update(Long id, BatchRequest batchRequest) {
-        Batch sp = batchRepository.findById(id)
+    public BatchResponse getById(Long id) {
+        Batch batch = batchRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lô hàng"));
+        return toResponse(batch);
+    }
 
-        if (batchRequest.getQuantity() != null) {
-            sp.setQuantity(batchRequest.getQuantity());
-        }
-        if (batchRequest.getPriceIn() != null) {
-            sp.setPriceIn(batchRequest.getPriceIn());
-        }
-        if (batchRequest.getExpiry() != null) {
-            sp.setExpiry(batchRequest.getExpiry());
-        }
-        if (batchRequest.getProductionDate() != null) {
-            sp.setProductionDate(batchRequest.getProductionDate());
-        }
+    /* =========================
+       CREATE
+       ========================= */
+
+    public BatchResponse create(BatchRequest batchRequest) {
+        Batch batch = new Batch();
+
+        batch.setQuantity(batchRequest.getQuantity());
+        batch.setPriceIn(batchRequest.getPriceIn());
+        batch.setExpiry(batchRequest.getExpiry());
+        batch.setProductionDate(batchRequest.getProductionDate());
 
         if (batchRequest.getProductID() != null) {
             Product product = productRepository.findById(batchRequest.getProductID())
                     .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
-            sp.setProduct(product);
+            batch.setProduct(product);
         }
 
-        return toResponse(batchRepository.save(sp));
+        return toResponse(batchRepository.save(batch));
     }
+
+    /* =========================
+       UPDATE
+       ========================= */
+
+    public BatchResponse update(Long id, BatchRequest batchRequest) {
+        Batch batch = batchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lô hàng"));
+
+        if (batchRequest.getQuantity() != null)
+            batch.setQuantity(batchRequest.getQuantity());
+
+        if (batchRequest.getPriceIn() != null)
+            batch.setPriceIn(batchRequest.getPriceIn());
+
+        if (batchRequest.getExpiry() != null)
+            batch.setExpiry(batchRequest.getExpiry());
+
+        if (batchRequest.getProductionDate() != null)
+            batch.setProductionDate(batchRequest.getProductionDate());
+
+        if (batchRequest.getProductID() != null) {
+            Product product = productRepository.findById(batchRequest.getProductID())
+                    .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+            batch.setProduct(product);
+        }
+
+        return toResponse(batchRepository.save(batch));
+    }
+
+    /* =========================
+       DELETE
+       ========================= */
 
     public void delete(Long id) {
         batchRepository.deleteById(id);
     }
 
-    // Chuyển từ Entity -> Response DTO
+    /* =========================
+       MAPPING
+       ========================= */
+
     private BatchResponse toResponse(Batch batch) {
-        BatchResponse dto = new BatchResponse();
-        dto.setBatchID(batch.getBatchID());
-        dto.setProductionDate(batch.getProductionDate());
-        dto.setExpiry(batch.getExpiry());
-        dto.setPriceIn(batch.getPriceIn());
-        dto.setQuantity(batch.getQuantity());
+
+        BatchResponse res = new BatchResponse();
+        res.setBatchID(batch.getBatchID());
+        res.setProductionDate(batch.getProductionDate());
+        res.setQuantity(batch.getQuantity());
+        res.setPriceIn(batch.getPriceIn());
+        res.setExpiry(batch.getExpiry());
 
         if (batch.getProduct() != null) {
-            dto.setProductID(batch.getProduct().getProductId());  // hoặc tên
+            res.setProduct(mapProduct(batch.getProduct()));
         }
 
-        return dto;
+        return res;
+    }
+
+    private ProductDTO mapProduct(Product product) {
+        if (product == null) return null;
+
+        return ProductDTO.builder()
+                .productId(product.getProductId())
+                .name(product.getName())
+                .price(product.getPrice())
+                .stockQuantity(product.getStockQuantity())
+                .description(product.getDescription())
+                .brandId(
+                        product.getBrand() != null
+                                ? product.getBrand().getBrandId()
+                                : null
+                )
+                .categoryId(
+                        product.getCategory() != null
+                                ? product.getCategory().getCategoryId()
+                                : null
+                )
+                .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.MobileStorageManagement.Controller;
 
+import com.example.MobileStorageManagement.DTO.StockInResponse;
 import com.example.MobileStorageManagement.DTO.StockOutRequest;
 import com.example.MobileStorageManagement.DTO.StockOutResponse;
 import com.example.MobileStorageManagement.Entity.StockOut;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/stockout")
@@ -18,18 +20,20 @@ public class StockOutController {
     @Autowired
     private StockOutService stockOutService;
 
-    @PreAuthorize("hasRole ('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public List<StockOut> getAll(){
-        return stockOutService.getAll();
+    public ResponseEntity<List<StockOutResponse>> getAll() {
+        return ResponseEntity.ok(
+                stockOutService.getAll()
+        );
     }
 
-    @PreAuthorize("hasRole ('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<StockOut> getByid(@PathVariable Long id){
-        return stockOutService.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<StockOutResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(
+                stockOutService.getById(id)
+        );
     }
 
     @PreAuthorize("hasRole ('ADMIN')")

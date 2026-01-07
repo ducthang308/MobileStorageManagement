@@ -1,12 +1,7 @@
 package com.example.MobileStorageManagement.Service;
 
-import com.example.MobileStorageManagement.DTO.StockInResponse;
-import com.example.MobileStorageManagement.DTO.StockOutRequest;
-import com.example.MobileStorageManagement.DTO.StockOutResponse;
-import com.example.MobileStorageManagement.Entity.Batch;
-import com.example.MobileStorageManagement.Entity.StockIn;
-import com.example.MobileStorageManagement.Entity.StockOut;
-import com.example.MobileStorageManagement.Entity.User;
+import com.example.MobileStorageManagement.DTO.*;
+import com.example.MobileStorageManagement.Entity.*;
 import com.example.MobileStorageManagement.Repository.BatchRepository;
 import com.example.MobileStorageManagement.Repository.StockOutRepository;
 import com.example.MobileStorageManagement.Repository.UserRepository;
@@ -16,10 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class StockOutService {
+
     @Autowired
     private StockOutRepository stockOutRepository;
 
@@ -27,100 +22,155 @@ public class StockOutService {
     private BatchRepository batchRepository;
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
     private UserRepository userRepository;
 
-    public Optional<StockOut> getById(Long id) {
-        return stockOutRepository.findById(id);
+    /* =========================
+       GET
+       ========================= */
+
+    public List<StockOutResponse> getAll() {
+        return stockOutRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
+    public StockOutResponse getById(Long id) {
+        StockOut stockOut = stockOutRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu xuất"));
+        return toResponse(stockOut);
+    }
+
+    /* =========================
+       CREATE
+       ========================= */
 
     public StockOut create(StockOutRequest stockOutRequest) throws IOException {
-        StockOut dto = new StockOut();
-        dto.setQuantity(stockOutRequest.getQuantity());
-        dto.setDate(stockOutRequest.getDate());
-        dto.setNote(stockOutRequest.getNote());
-
-        // tìm user dựa vào giải token lấy mail hoặc sdt rồi truy ngược lại vào db
-        String identity = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user;
-        if (identity.contains("@")) {
-            // nếu login bằng mail
-            user = userRepository.findByEmail(identity)
-                    .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại (email)!"));
-        } else {
-            // nếu login bằng sdt
-            user = userRepository.findBySdt(identity)
-                    .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại (sdt)!"));
-        }
-        dto.setUser(user);
+        StockOut entity = new StockOut();
+        entity.setQuantity(stockOutRequest.getQuantity());
+        entity.setDate(stockOutRequest.getDate());
+        entity.setNote(stockOutRequest.getNote());
+        entity.setUser(getCurrentUser());
 
         if (stockOutRequest.getBatchID() != null) {
             Batch batch = batchRepository.findById(stockOutRequest.getBatchID())
                     .orElseThrow(() -> new RuntimeException("Lô hàng không tồn tại"));
-            dto.setBatch(batch);
+            entity.setBatch(batch);
         }
 
-        return (stockOutRepository.save(dto));
+        return stockOutRepository.save(entity);
     }
+
+    /* =========================
+       UPDATE
+       ========================= */
 
     public StockOut update(Long id, StockOutRequest stockOutRequest) throws IOException {
-        StockOut dto = stockOutRepository.findById(id)
+        StockOut entity = stockOutRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu xuất"));
 
-        if (stockOutRequest.getQuantity() != null) {
-            dto.setQuantity(stockOutRequest.getQuantity());
-        }
+        if (stockOutRequest.getQuantity() != null)
+            entity.setQuantity(stockOutRequest.getQuantity());
 
-        if (stockOutRequest.getDate() != null) {
-            dto.setDate(stockOutRequest.getDate());
-        }
+        if (stockOutRequest.getDate() != null)
+            entity.setDate(stockOutRequest.getDate());
 
-        if (stockOutRequest.getNote() != null) {
-            dto.setNote(stockOutRequest.getNote());
-        }
+        if (stockOutRequest.getNote() != null)
+            entity.setNote(stockOutRequest.getNote());
 
         if (stockOutRequest.getBatchID() != null) {
             Batch batch = batchRepository.findById(stockOutRequest.getBatchID())
                     .orElseThrow(() -> new RuntimeException("Lô hàng không tồn tại"));
-            dto.setBatch(batch);
+            entity.setBatch(batch);
         }
 
-        String sdt = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findBySdt(sdt)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        dto.setUser(user);
+        entity.setUser(getCurrentUser());
 
-        return (stockOutRepository.save(dto));
+        return stockOutRepository.save(entity);
     }
 
+    /* =========================
+       DELETE
+       ========================= */
 
     public void delete(Long id) {
         stockOutRepository.deleteById(id);
     }
 
-    public List<StockOut> getAll() {
-        return stockOutRepository.findAll();
-    }
+    /* =========================
+       MAPPING
+       ========================= */
 
     public StockOutResponse toResponse(StockOut stock) {
 
-        StockOutResponse dto = new StockOutResponse();
-        dto.setStockOutId(stock.getStockOutID());
-        dto.setQuantity(stock.getQuantity());
-        dto.setDate(stock.getDate());
-        dto.setNote(stock.getNote());
+        StockOutResponse res = new StockOutResponse();
+        res.setStockOutId(stock.getStockOutID());
+        res.setQuantity(stock.getQuantity());
+        res.setNote(stock.getNote());
+        res.setDate(stock.getDate());
 
+        // Batch + Product
         if (stock.getBatch() != null) {
-            dto.setBatchID(stock.getBatch().getBatchID());
+            Batch batch = stock.getBatch();
+
+            BatchResponse batchRes = BatchResponse.builder()
+                    .batchID(batch.getBatchID())
+                    .productionDate(batch.getProductionDate())
+                    .quantity(batch.getQuantity())
+                    .priceIn(batch.getPriceIn())
+                    .expiry(batch.getExpiry())
+                    .product(mapProduct(batch.getProduct()))
+                    .build();
+
+            res.setBatch(batchRes);
         }
 
+        // User
         if (stock.getUser() != null) {
-            dto.setUserID(stock.getUser().getUserId());
+            User user = stock.getUser();
+
+            UserResponse userRes = new UserResponse(
+                    user.getUserId(),
+                    user.getSdt(),
+                    user.getFullName(),
+                    user.getEmail(),
+                    user.getAddress(),
+                    user.getAvatar()
+            );
+
+            res.setUser(userRes);
         }
 
-        return dto;
+        return res;
+    }
+
+    /* =========================
+       HELPERS
+       ========================= */
+
+    private ProductDTO mapProduct(Product product) {
+        if (product == null) return null;
+
+        return ProductDTO.builder()
+                .productId(product.getProductId())
+                .name(product.getName())
+                .price(product.getPrice())
+                .stockQuantity(product.getStockQuantity())
+                .description(product.getDescription())
+                .build();
+    }
+
+    private User getCurrentUser() {
+        String identity = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        if (identity.contains("@")) {
+            return userRepository.findByEmail(identity)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại (email)"));
+        }
+
+        return userRepository.findBySdt(identity)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại (sdt)"));
     }
 }

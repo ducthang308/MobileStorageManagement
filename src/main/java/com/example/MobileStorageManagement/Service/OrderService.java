@@ -1,44 +1,101 @@
 package com.example.MobileStorageManagement.Service;
 
-import com.example.MobileStorageManagement.DTO.OrderFullResponse;
-import com.example.MobileStorageManagement.DTO.OrderProductDTO;
-import com.example.MobileStorageManagement.DTO.OrderRequest;
-import com.example.MobileStorageManagement.DTO.OrderResponse;
-import com.example.MobileStorageManagement.Entity.Order;
-import com.example.MobileStorageManagement.Entity.ProductImage;
-import com.example.MobileStorageManagement.Entity.User;
-import com.example.MobileStorageManagement.Repository.OrderRepository;
-import com.example.MobileStorageManagement.Repository.UserRepository;
+import com.example.MobileStorageManagement.DTO.*;
+import com.example.MobileStorageManagement.Entity.*;
+import com.example.MobileStorageManagement.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    private final DiscountService discountService;
 
-    // CREATE
+    /* ================= CREATE ================= */
+
+    @Transactional
     public Order createOrder(OrderRequest dto) {
 
         User user = userRepository.findById(dto.getUserID())
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
+        if (dto.getItems() == null || dto.getItems().isEmpty()) {
+            throw new RuntimeException("Order phải có ít nhất 1 sản phẩm");
+        }
+
+        // 1️⃣ Tạo Order object (CHƯA save)
         Order order = Order.builder()
-                .orderDate(dto.getOrderDate() != null ? dto.getOrderDate() : LocalDateTime.now())
-                .status(dto.getStatus())
-                .paymentStatus(dto.getPaymentStatus())
+                .orderDate(LocalDateTime.now())
+                .status("PENDING")
+                .paymentStatus("UNPAID")
                 .user(user)
                 .build();
 
-        return orderRepository.save(order);
+        // 2️⃣ Tạo OrderDetails + subtotal
+        double subTotal = 0;
+        List<OrderDetail> orderDetails = new ArrayList<>();
+
+        for (OrderItemRequest item : dto.getItems()) {
+
+            if (item.getQuantity() <= 0) {
+                throw new RuntimeException("Số lượng phải > 0");
+            }
+
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product không tồn tại"));
+
+            OrderDetail detail = OrderDetail.builder()
+                    .order(order) // chưa cần OrderID
+                    .product(product)
+                    .quantity(item.getQuantity())
+                    .unitPrice(product.getPrice())
+                    .build();
+
+            subTotal += detail.getUnitPrice() * detail.getQuantity();
+            orderDetails.add(detail);
+        }
+
+        // 3️⃣ Discount
+        double discountAmount = 0;
+
+        if (dto.getDiscountCode() != null && !dto.getDiscountCode().isBlank()) {
+            Discount discount = discountService.validate(dto.getDiscountCode(), subTotal);
+            discountAmount = discountService.calculate(discount, subTotal);
+
+            order.setDiscountCode(discount.getCode());
+            order.setDiscountType(discount.getType());
+            order.setDiscountValue(discount.getValue());
+            order.setDiscountAmount(discountAmount);
+
+            discountService.markUsed(discount);
+        }
+
+        // 4️⃣ Set tiền (QUAN TRỌNG)
+        order.setSubTotal(subTotal);
+        order.setTotalAmount(subTotal - discountAmount);
+        order.setOrderDetails(orderDetails);
+
+        // 5️⃣ LƯU 1 LẦN DUY NHẤT
+        Order savedOrder = orderRepository.save(order);
+
+        // 6️⃣ Save details (nếu không dùng cascade)
+        orderDetailRepository.saveAll(orderDetails);
+
+        return savedOrder;
     }
 
-    // GET BY ID
+    /* ================= GET ================= */
+
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order không tồn tại"));
@@ -52,7 +109,6 @@ public class OrderService {
                 .toList();
     }
 
-
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll()
                 .stream()
@@ -60,14 +116,14 @@ public class OrderService {
                 .toList();
     }
 
-    // UPDATE
+    /* ================= UPDATE ================= */
+
+    @Transactional
     public Order updateOrder(Long id, OrderRequest dto) {
+
         Order order = getOrderById(id);
 
-        if (dto.getOrderDate() != null) {
-            order.setOrderDate(dto.getOrderDate());
-        }
-
+        // chỉ cho phép admin / hệ thống update
         if (dto.getStatus() != null) {
             order.setStatus(dto.getStatus());
         }
@@ -79,30 +135,39 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    /* ================= DELETE ================= */
 
-    // DELETE
+    @Transactional
     public void deleteOrder(Long id) {
         Order order = getOrderById(id);
         orderRepository.delete(order);
     }
 
+    /* ================= MAPPER ================= */
+
     public OrderFullResponse toFullResponse(Order order) {
+
         OrderFullResponse res = new OrderFullResponse();
         res.setOrderID(order.getOrderID());
         res.setOrderDate(order.getOrderDate());
         res.setStatus(order.getStatus());
         res.setPaymentStatus(order.getPaymentStatus());
         res.setUserID(order.getUser().getUserId());
+        res.setSubTotal(order.getSubTotal());
+        res.setDiscountAmount(order.getDiscountAmount());
+        res.setTotalAmount(order.getTotalAmount());
 
-        List<OrderProductDTO> products = order.getOrderDetails().stream()
+        List<OrderProductDTO> products = order.getOrderDetails()
+                .stream()
                 .map(od -> {
                     OrderProductDTO p = new OrderProductDTO();
                     p.setProductID(od.getProduct().getProductId());
                     p.setName(od.getProduct().getName());
-                    p.setPrice(od.getProduct().getPrice());
+                    p.setPrice(od.getUnitPrice());
                     p.setQuantity(od.getQuantity());
 
-                    String imageUrl = od.getProduct().getProductImages()
+                    String imageUrl = od.getProduct()
+                            .getProductImages()
                             .stream()
                             .filter(img -> img.getImg_index() == 0)
                             .map(ProductImage::getUrl)
@@ -110,7 +175,6 @@ public class OrderService {
                             .orElse(null);
 
                     p.setImageUrl(imageUrl);
-
                     return p;
                 })
                 .toList();
@@ -119,6 +183,30 @@ public class OrderService {
         return res;
     }
 
+    @Transactional
+    public Order applyDiscount(Long orderId, String code) {
+
+        Order order = getOrderById(orderId);
+
+        if (!"UNPAID".equals(order.getPaymentStatus())) {
+            throw new RuntimeException("Không thể áp mã cho đơn đã thanh toán");
+        }
+
+        double subTotal = order.getSubTotal();
+
+        Discount discount = discountService.validate(code, subTotal);
+        double discountAmount = discountService.calculate(discount, subTotal);
+
+        order.setDiscountCode(discount.getCode());
+        order.setDiscountType(discount.getType());
+        order.setDiscountValue(discount.getValue());
+        order.setDiscountAmount(discountAmount);
+        order.setTotalAmount(subTotal - discountAmount);
+
+        discountService.markUsed(discount);
+
+        return orderRepository.save(order);
+    }
 
     public static OrderResponse toResponse(Order order) {
         OrderResponse res = new OrderResponse();

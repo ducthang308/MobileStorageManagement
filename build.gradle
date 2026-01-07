@@ -1,3 +1,4 @@
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.7'
@@ -10,7 +11,7 @@ description = 'MobileStorageManagement project for Spring Boot'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(22)
 	}
 }
 
@@ -37,16 +38,16 @@ dependencies {
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	implementation 'com.cloudinary:cloudinary-core:1.33.0'
 	// HTTP client để gửi request
-    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+	implementation 'org.apache.httpcomponents:httpclient:4.5.14'
 
-    // Upload multipart/form-data
-    implementation 'org.apache.httpcomponents:httpmime:4.5.14'
+	// Upload multipart/form-data
+	implementation 'org.apache.httpcomponents:httpmime:4.5.14'
 
-    // Hash SHA-1 signature
-    implementation 'commons-codec:commons-codec:1.15'
+	// Hash SHA-1 signature
+	implementation 'commons-codec:commons-codec:1.15'
 
-    // JSON library
-    implementation 'org.json:json:20230227'
+	// JSON library
+	implementation 'org.json:json:20230227'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.4'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.4'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.4'

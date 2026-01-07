@@ -36,9 +36,9 @@ public class OrderController {
     // GET BY ID
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
+    public ResponseEntity<OrderFullResponse> getOrderById(@PathVariable Long id) {
         Order order = orderService.getOrderById(id);
-        return ResponseEntity.ok(OrderService.toResponse(order));
+        return ResponseEntity.ok(orderService.toFullResponse(order));
     }
 
     // GET ALL ORDERS BY USER
@@ -52,7 +52,15 @@ public class OrderController {
         );
     }
 
-
+    @PreAuthorize("hasRole('USER')")
+    @PostMapping("/{id}/apply-discount")
+    public ResponseEntity<OrderFullResponse> applyDiscount(
+            @PathVariable Long id,
+            @RequestParam String code
+    ) {
+        Order order = orderService.applyDiscount(id, code);
+        return ResponseEntity.ok(orderService.toFullResponse(order));
+    }
 
     // GET ALL
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -74,7 +82,6 @@ public class OrderController {
         Order order = orderService.updateOrder(id, dto);
         return ResponseEntity.ok(orderService.toResponse(order));
     }
-
 
     // DELETE
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")

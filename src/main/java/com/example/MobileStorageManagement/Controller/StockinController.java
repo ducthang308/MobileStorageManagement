@@ -21,23 +21,21 @@ public class StockinController {
     private StockInService stockInService;
 
     // GET ALL
-    @PreAuthorize("hasRole ('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<StockInResponse>> getAll() {
-        List<StockInResponse> list = stockInService.getAll().stream()
-                .map(stockInService::toResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(
+                stockInService.getAll()
+        );
     }
 
     // GET BY ID
-    @PreAuthorize("hasRole ('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<StockInResponse> getById(@PathVariable Integer id) {
-        StockIn stock = stockInService.getById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập"));
-
-        return ResponseEntity.ok(stockInService.toResponse(stock));
+        return ResponseEntity.ok(
+                stockInService.getById(id)
+        );
     }
 
     // CREATE
