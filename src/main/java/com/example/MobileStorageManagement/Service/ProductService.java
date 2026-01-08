@@ -4,19 +4,23 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.MobileStorageManagement.Entity.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 
 import com.example.MobileStorageManagement.DTO.ProductDTO;
 import com.example.MobileStorageManagement.DTO.ProductImageDTO;
 import com.example.MobileStorageManagement.DTO.SpecificationDTO;
-import com.example.MobileStorageManagement.Entity.Product;
-import com.example.MobileStorageManagement.Entity.ProductImage;
-import com.example.MobileStorageManagement.Entity.Specification;
 import com.example.MobileStorageManagement.Repository.ProductRepository;
 
 @Service
 public class ProductService {
     private final ProductRepository productRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
 
     public ProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
@@ -59,9 +63,21 @@ public class ProductService {
         product.setStockQuantity(dto.getStockQuantity());
         product.setDescription(dto.getDescription());
 
+        if (dto.getBrandId() != null) {
+            product.setBrand(
+                    entityManager.getReference(Brand.class, dto.getBrandId())
+            );
+        }
+
+        if (dto.getCategoryId() != null) {
+            product.setCategory(
+                    entityManager.getReference(Category.class, dto.getCategoryId())
+            );
+        }
+
+        // SPEC
         if (dto.getSpecification() != null) {
             Specification s = new Specification();
-            s.setSpecId(dto.getSpecification().getSpecId());
             s.setScreen(dto.getSpecification().getScreen());
             s.setOs(dto.getSpecification().getOs());
             s.setCpu(dto.getSpecification().getCpu());
@@ -72,18 +88,17 @@ public class ProductService {
             product.setSpecification(s);
         }
 
+        // IMAGES
         if (dto.getProductImages() != null) {
             List<ProductImage> images = dto.getProductImages().stream()
                     .map(i -> {
                         ProductImage img = new ProductImage();
-                        img.setId(i.getId());
                         img.setUrl(i.getUrl());
                         img.setImg_index(i.getImg_index());
                         img.setProduct(product);
                         return img;
                     })
-                    .collect(Collectors.toList());
-
+                    .toList();
             product.setProductImages(images);
         }
 
@@ -161,8 +176,25 @@ public class ProductService {
         exist.setStockQuantity(dto.getStockQuantity());
         exist.setDescription(dto.getDescription());
 
+        if (dto.getBrandId() != null) {
+            exist.setBrand(
+                    entityManager.getReference(Brand.class, dto.getBrandId())
+            );
+        }
+
+        if (dto.getCategoryId() != null) {
+            exist.setCategory(
+                    entityManager.getReference(Category.class, dto.getCategoryId())
+            );
+        }
+
+
         // Update specification
         if (dto.getSpecification() != null) {
+            if (exist.getSpecification() == null) {
+                exist.setSpecification(new Specification());
+            }
+
             exist.getSpecification().setScreen(dto.getSpecification().getScreen());
             exist.getSpecification().setOs(dto.getSpecification().getOs());
             exist.getSpecification().setCpu(dto.getSpecification().getCpu());

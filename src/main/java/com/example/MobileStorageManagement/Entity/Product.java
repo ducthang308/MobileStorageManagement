@@ -47,7 +47,7 @@ public class Product {
     @JsonIgnore
     private Category category;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "SpecID")
     private Specification specification;
 
